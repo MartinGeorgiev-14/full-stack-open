@@ -1,0 +1,28 @@
+
+.common-message{
+    background-color: dimgray;
+    border: 5px solid;
+    border-radius: 5px;
+    padding: 1rem;
+    font-size: 1.2rem;
+    width: 50%;
+}
+
+.hidden {
+    display: none;
+}
+
+.success{
+    color: green;
+    border-color: green;
+}
+
+.warning{
+    color: yellow;
+    border-color: yellow;
+}
+
+.error{
+    color: red;
+    border-color: red;
+}
