@@ -1,0 +1,18 @@
+.success {
+    color: limegreen;
+    border-color: limegreen;
+}
+
+.error {
+    color: red;
+    border-color: red;
+}
+
+.warning {
+    color: orange;
+    border-color: orange;
+}
+
+.hidden {
+    display: none;
+}
