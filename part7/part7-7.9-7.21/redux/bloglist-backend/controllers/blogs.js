@@ -1,0 +1,148 @@
+const blogsRouter = require("express").Router();
+const Blog = require("../models/blog");
+const User = require("../models/user");
+const jwt = require("jsonwebtoken")
+
+
+blogsRouter.get('/', async (request, response, next) => {
+
+  try {
+    const result = await Blog.find({}).populate("user", { username: 1, name: 1 })
+
+    if (result) {
+      response.status(200).json(result)
+    }
+    else {
+      response.status(404).json({ error: "no blogs found" })
+    }
+  } catch (error) {
+    next(error)
+  }
+
+})
+
+blogsRouter.post('/', async (request, response, next) => {
+  const body = request.body
+  const user = request.user
+  
+  try {
+
+    if (!user) {
+      return response.status(401).json({ error: "unauthorized" })
+    }
+
+    const blog = new Blog({
+      title: body.title,
+      url: body.url,
+      likes: body.likes || 0,
+      author: body.author,
+      user
+    })
+
+    const savedBlog = await blog.save()
+    user.blogs = user.blogs.concat(savedBlog._id)
+    await user.save()
+    response.status(201).json(savedBlog)
+
+  } catch (error) {
+    next(error)
+  }
+
+})
+
+
+blogsRouter.delete("/:id", async (request, response, next) => {
+  const id = request.params.id
+  const user = request.user
+  const blog = await Blog.findById(id)
+  console.log(user)
+  try {
+
+    if (!user.id) {
+      return response.status(401).json({ error: "unauthorized" })
+    }
+    else if (!blog) {
+      return response.status(404).json({ error: "blog was not found" })
+    }
+    else if (blog.user.toString() === user.id) {
+      // Should use blog.delete() instead of this. But it shat itself for some reason.
+      await Blog.findByIdAndDelete(id)
+      const fetchedUser = await User.findById(user.id)
+      fetchedUser.blogs.filter(b => b.id !== blog.id)
+      await fetchedUser.save()
+      console.log(fetchedUser)
+      console.log(user)
+      return response.status(200).json({ message: "blog was deleted successfully" })
+    }
+    else {
+      return response.status(403).json({ error: "you are not the author of this blog" })
+    }
+  }
+  catch (error) {
+    next(error)
+  }
+})
+
+blogsRouter.patch("/:id", async (request, response, next) => {
+  const body = request.body
+
+  const blog = {
+    likes: body.likes || 0,
+  }
+
+  try {
+    const result = await Blog.findByIdAndUpdate(request.params.id, blog, { new: true })
+
+    if (result) {
+      response.json(result)
+    }
+    else {
+      response.status(404).end()
+    }
+
+  } catch (error) {
+    next(error)
+  }
+})
+
+blogsRouter.get("/:id", async (request, response, next) => {
+  const id = request.params.id
+
+  try {
+    const result = await Blog.findById(id)
+
+    if (result) {
+      response.status(200).json(result)
+    }
+    else {
+      response.status(404).end()
+    }
+  } catch (error) {
+    next(error)
+  }
+
+})
+
+blogsRouter.patch('/:id/comments', async (request, response, next) => {
+  const id = request.params.id
+
+  try { 
+    const blog = await Blog.findById(id)
+    const comment = request.body.comment
+
+    if (!blog) {
+      return response.status(404).json({ error: "Blog not found" })
+    }
+
+    blog.comments = [...blog.comments, comment]
+    await blog.save()
+    return response.status(200).json({message: 'You have added a comment', comment: comment})
+
+  } catch (error) {
+    next(error)
+  }
+})
+
+
+
+module.exports = blogsRouter
